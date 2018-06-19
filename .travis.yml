@@ -99,8 +99,6 @@ deploy:
     on:
       all_branches: true
       tag: true
-      condition: "$TRAVIS_TAG =~ ^v.*$"
-      condition: "$GITSECRET_DIST == deb""
     file: "build/deb_descriptor.json"
     user: "sobolevn"
     key: "$BINTRAY_API_KEY"
@@ -110,8 +108,6 @@ deploy:
     on:
       all_branches: true
       tag: true
-      condition: "$TRAVIS_TAG =~ ^v.*$"
-      condition: "$GITSECRET_DIST == rpm""
     file: "build/rpm_descriptor.json"
     user: "sobolevn"
     key: "$BINTRAY_API_KEY"
