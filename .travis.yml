@@ -97,12 +97,10 @@ deploy:
   - provider: bintray
     skip_cleanup: true
     on:
-    branches:
-      except:
-      - legacy
-      - experimental
+      all_branches: true
       tag: true
-      condition: "$TRAVIS_TAG =~ ^v.*$ && $GITSECRET_DIST == deb"
+      condition: "$TRAVIS_TAG =~ ^v.*$"
+      condition: "$GITSECRET_DIST == deb""
     file: "build/deb_descriptor.json"
     user: "sobolevn"
     key: "$BINTRAY_API_KEY"
@@ -110,12 +108,10 @@ deploy:
   - provider: bintray
     skip_cleanup: true
     on:
-      branches:
-        except:
-        - legacy
-        - experimental
+      all_branches: true
       tag: true
-      condition: "$TRAVIS_TAG =~ ^v.*$ && $GITSECRET_DIST == rpm"
+      condition: "$TRAVIS_TAG =~ ^v.*$"
+      condition: "$GITSECRET_DIST == rpm""
     file: "build/rpm_descriptor.json"
     user: "sobolevn"
     key: "$BINTRAY_API_KEY"
