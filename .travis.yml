@@ -98,7 +98,7 @@ deploy:
     skip_cleanup: true
     on:
       tag: true
-      condition: "$TRAVIS_TAG =~ ^v.*$ AND $GITSECRET_DIST == deb"
+      condition: "$TRAVIS_TAG =~ ^v.*$ && $GITSECRET_DIST == deb"
     file: "build/deb_descriptor.json"
     user: "sobolevn"
     key: "$BINTRAY_API_KEY"
@@ -107,7 +107,7 @@ deploy:
     skip_cleanup: true
     on:
       tag: true
-      condition: "$TRAVIS_TAG =~ ^v.*$ AND $GITSECRET_DIST == rpm"
+      condition: "$TRAVIS_TAG =~ ^v.*$ && $GITSECRET_DIST == rpm"
     file: "build/rpm_descriptor.json"
     user: "sobolevn"
     key: "$BINTRAY_API_KEY"
