@@ -97,8 +97,8 @@ deploy:
   - provider: bintray
     skip_cleanup: true
     on:
-      branch: master
-      condition: "$GITSECRET_DIST == deb"
+      tag: true
+      condition: "$TRAVIS_TAG =~ ^v.*$ AND $GITSECRET_DIST == deb"
     file: "build/deb_descriptor.json"
     user: "sobolevn"
     key: "$BINTRAY_API_KEY"
@@ -106,8 +106,8 @@ deploy:
   - provider: bintray
     skip_cleanup: true
     on:
-      branch: master
-      condition: "$GITSECRET_DIST == rpm"
+      tag: true
+      condition: "$TRAVIS_TAG =~ ^v.*$ AND $GITSECRET_DIST == rpm"
     file: "build/rpm_descriptor.json"
     user: "sobolevn"
     key: "$BINTRAY_API_KEY"
