@@ -97,10 +97,10 @@ deploy:
   - provider: bintray
     skip_cleanup: true
     on:
-      branches:
-        only:
-        - master
-        - /v.*/
+    branches:
+      except:
+      - legacy
+      - experimental
       tag: true
       condition: "$TRAVIS_TAG =~ ^v.*$ && $GITSECRET_DIST == deb"
     file: "build/deb_descriptor.json"
@@ -111,9 +111,9 @@ deploy:
     skip_cleanup: true
     on:
       branches:
-        only:
-        - master
-        - /v.*/
+        except:
+        - legacy
+        - experimental
       tag: true
       condition: "$TRAVIS_TAG =~ ^v.*$ && $GITSECRET_DIST == rpm"
     file: "build/rpm_descriptor.json"
