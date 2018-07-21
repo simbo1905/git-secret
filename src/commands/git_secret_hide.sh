@@ -20,7 +20,7 @@ function _optional_clean {
   local verbose=${2:-""}
 
   if [[ $clean -eq 1 ]]; then
-    _find_and_clean_formated "*$SECRETS_EXTENSION" "$verbose"
+    _find_and_clean_formatted "*$SECRETS_EXTENSION" "$verbose"
   fi
 }
 
@@ -33,13 +33,13 @@ function _optional_delete {
     local path_mappings
     path_mappings=$(_get_secrets_dir_paths_mapping)
 
-    # We use custom formating here:
+    # We use custom formatting here:
     if [[ ! -z "$verbose" ]]; then
       echo && echo 'removing unencrypted files:'
     fi
 
     while read -r line; do
-      # So the formating would not be repeated several times here:
+      # So the formatting would not be repeated several times here:
       local filename
       filename=$(_get_record_filename "$line")
       _find_and_clean "*$filename" "$verbose"
@@ -74,7 +74,7 @@ function _optional_fsdb_update_hash {
 
   fsdb=$(_get_secrets_dir_paths_mapping)
 
-  _gawk_inplace -v key="$key" -v hash="$hash" "'$AWK_FSDB_UPDATE_HASH'" "$fsdb"
+  _gawk_inplace -v key="'$key'" -v hash="$hash" "'$AWK_FSDB_UPDATE_HASH'" "$fsdb"
 }
 
 
@@ -120,12 +120,6 @@ function hide {
   # make sure all the unencrypted files needed are present
   local to_hide=()
   while read -r record; do
-    local filename
-    filename=$(_get_record_filename "$record")
-
-    if [[ ! -f "$filename" ]]; then
-      _abort "file not found: $filename"
-    fi
     to_hide+=("$record")  # add record to array
   done < "$path_mappings"
 
@@ -138,28 +132,29 @@ function hide {
     fsdb_file_hash=$(_get_record_hash "$record")
     encrypted_filename=$(_get_encrypted_filename "$filename")
 
-    # Checking that file is valid:
-    if [[ ! -f "$filename" ]]; then
-      _abort "file not found: $filename"
-    fi
-
     local recipients
-    recipients=$(_get_recepients)
+    recipients=$(_get_recipients)
 
-    local gpg_local
-    gpg_local=$(_get_gpg_local)
+    local secrets_dir_keys
+    secrets_dir_keys=$(_get_secrets_dir_keys)
 
     local input_path
     local output_path
     input_path=$(_append_root_path "$filename")
     output_path=$(_append_root_path "$encrypted_filename")
 
+    # Checking that file is valid:
+    if [[ ! -f "$input_path" ]]; then
+      _abort "file not found: $input_path"
+    fi
+
     file_hash=$(_get_file_hash "$input_path")
 
     # encrypt file only if required
     if [[ "$fsdb_file_hash" != "$file_hash" ]]; then
-      # shellcheck disable=2086
-      $gpg_local --use-agent --yes --trust-model=always --encrypt \
+      # we depend on $recipients being split on whitespace
+      # shellcheck disable=SC2086
+      $SECRETS_GPG_COMMAND --homedir "$secrets_dir_keys" "--no-permission-warning" --use-agent --yes --trust-model=always --encrypt \
         $recipients -o "$output_path" "$input_path" > /dev/null 2>&1
       local exit_code=$?
       if [[ "$exit_code" -ne 0 ]]; then

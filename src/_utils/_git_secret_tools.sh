@@ -83,7 +83,7 @@ AWK_GPG_VER_CHECK='
 }
 '
 
-# This is 1 for gpg vesion  2.1 or greater, otherwise 0
+# This is 1 for gpg version 2.1 or greater, otherwise 0
 GPG_VER_21="$(gpg --version | gawk "$AWK_GPG_VER_CHECK")"
 
 
@@ -176,6 +176,7 @@ function _delete_line {
 }
 
 
+# this sets the global variable 'filename'
 function _temporary_file {
   # This function creates temporary file
   # which will be removed on system exit.
@@ -258,7 +259,7 @@ function _fsdb_rm_record {
   local key="$1"  # required
   local fsdb="$2" # required
 
-  _gawk_inplace -v key="$key" "'$AWK_FSDB_RM_RECORD'" "$fsdb"
+  _gawk_inplace -v key="'$key'" "'$AWK_FSDB_RM_RECORD'" "$fsdb"
 }
 
 function _fsdb_clear_hashes {
@@ -329,7 +330,7 @@ function _maybe_create_gitignore {
 
 
 function _add_ignored_file {
-  # This function adds a line with the filename into the '.gitgnore' file.
+  # This function adds a line with the filename into the '.gitignore' file.
   # It also creates '.gitignore' if it's not there
 
   local filename="$1" # required
@@ -420,19 +421,6 @@ function _get_secrets_dir_paths_mapping {
 
 # Logic:
 
-function _get_gpg_local {
-  # This function is required to return proper `gpg` command.
-  # This function was created due to this bug:
-  # https://github.com/sobolevn/git-secret/issues/85
-
-  local homedir
-  homedir=$(_get_secrets_dir_keys)
-
-  local gpg_local="$SECRETS_GPG_COMMAND --homedir=$homedir --no-permission-warning"
-  echo "$gpg_local"
-}
-
-
 function _abort {
   local message="$1" # required
 
@@ -455,7 +443,7 @@ function _find_and_clean {
 }
 
 
-function _find_and_clean_formated {
+function _find_and_clean_formatted {
   # required:
   local pattern="$1" # can be any string pattern
 
@@ -475,6 +463,7 @@ function _find_and_clean_formated {
 }
 
 
+# this sets the global array variable 'filenames' 
 function _list_all_added_files {
   local path_mappings
   path_mappings=$(_get_secrets_dir_paths_mapping)
@@ -483,9 +472,14 @@ function _list_all_added_files {
     _abort "$path_mappings is missing."
   fi
 
+  local filename
+  filenames=()      # not local
   while read -r line; do
-    _get_record_filename "$line"
+    filename=$(_get_record_filename "$line")
+    filenames+=("$filename")
   done < "$path_mappings"
+
+  declare -a filenames     # so caller can get list from filenames array
 }
 
 
@@ -543,11 +537,11 @@ function _user_required {
     _abort "$error_message"
   fi
 
-  local gpg_local
-  gpg_local=$(_get_gpg_local)
+  local secrets_dir_keys
+  secrets_dir_keys=$(_get_secrets_dir_keys)
 
   local keys_exist
-  keys_exist=$($gpg_local -n --list-keys)
+  keys_exist=$($SECRETS_GPG_COMMAND --homedir "$secrets_dir_keys" --no-permission-warning -n --list-keys)
   local exit_code=$?
   if [[ "$exit_code" -ne 0 ]]; then
     # this might catch corner case where gpg --list-keys shows 
@@ -573,18 +567,6 @@ function _get_encrypted_filename {
 }
 
 
-function _parse_keyring_users {
-  # First argument must be a `sed` pattern
-  local sed_pattern="$1"
-
-  local result
-
-  local gpg_local
-  gpg_local=$(_get_gpg_local)
-
-  result=$($gpg_local --list-public-keys --with-colon | sed -n "$sed_pattern")
-  echo "$result"
-}
 
 
 function _get_users_in_keyring {
@@ -592,16 +574,26 @@ function _get_users_in_keyring {
   # `whoknows` command uses it internally.
   # It basically just parses the `gpg` public keys
 
-  _parse_keyring_users 's/.*<\(.*\)>.*/\1/p'
+  local secrets_dir_keys
+  secrets_dir_keys=$(_get_secrets_dir_keys)
+    
+  # pluck out 'uid' lines, fetch 10th field, extract part in <> if it exists (else leave alone)
+  # we use --fixed-list-mode so older versions of gpg emit 'uid:' lines
+  local result
+  result=$($SECRETS_GPG_COMMAND --homedir "$secrets_dir_keys" --no-permission-warning --list-public-keys --with-colon --fixed-list-mode | grep ^uid: | gawk -F':' '{print $10;}' | sed 's/.*<\(.*\)>.*/\1/')
+
+  echo "$result"
 }
 
 
-function _get_recepients {
+function _get_recipients {
   # This function is required to create an encrypted file for different users.
-  # These users are called 'recepients' in the `gpg` terms.
+  # These users are called 'recipients' in the `gpg` terms.
   # It basically just parses the `gpg` public keys
 
-  _parse_keyring_users 's/.*<\(.*\)>.*/-r\1/p'
+  local result
+  result=$(_get_users_in_keyring | sed 's/^/-r/')   # put -r before each user
+  echo "$result"
 }
 
 
@@ -618,31 +610,31 @@ function _decrypt {
   local encrypted_filename
   encrypted_filename=$(_get_encrypted_filename "$filename")
 
-  local base="$SECRETS_GPG_COMMAND --use-agent --decrypt --no-permission-warning"
+  local args=( "--use-agent" "--decrypt" "--no-permission-warning" )
 
   if [[ "$write_to_file" -eq 1 ]]; then
-    base="$base -o $filename"
+    args+=( "-o" "$filename" )
   fi
 
   if [[ "$force" -eq 1 ]]; then
-    base="$base --yes"
+    args+=( "--yes" )
   fi
 
   if [[ ! -z "$homedir" ]]; then
-    base="$base --homedir=$homedir"
+    args+=( "--homedir" "$homedir" )
   fi
 
   if [[ "$GPG_VER_21" -eq 1 ]]; then
-    base="$base --pinentry-mode loopback"
+    args+=( "--pinentry-mode" "loopback" )
   fi
 
   local exit_code
   if [[ ! -z "$passphrase" ]]; then
-    echo "$passphrase" | $base --quiet --batch --yes --no-tty --passphrase-fd 0 \
+    echo "$passphrase" | $SECRETS_GPG_COMMAND "${args[@]}" --quiet --batch --yes --no-tty --passphrase-fd 0 \
       "$encrypted_filename"
     exit_code=$?
   else
-    $base --quiet "$encrypted_filename"
+    $SECRETS_GPG_COMMAND "${args[@]}" "--quiet" "$encrypted_filename"
     exit_code=$?
   fi
   if [[ "$exit_code" -ne 0 ]]; then
