@@ -40,20 +40,20 @@ platforms:
           - /run
           - /run/lock
 
-  # - name: debian-current
-  #   driver_config:
-  #     run_command: /lib/systemd/systemd
-  #     dockerfile: .Dockerfiles/debian/current/Dockerfile
-  #     platform: debian
-  #     cap_add:
-  #       - SYS_ADMIN
-  #     volume:
-  #       - /sys/fs/cgroup:/sys/fs/cgroup:ro
-  #       - <%=ENV['PWD']%>:/opt/workspace # Make the working directory available inside the container
-  #     run_options:
-  #       tmpfs:
-  #         - /run
-  #         - /run/lock
+  - name: debian-current
+    driver_config:
+      run_command: /lib/systemd/systemd
+      dockerfile: .Dockerfiles/debian/current/Dockerfile
+      platform: debian
+      cap_add:
+        - SYS_ADMIN
+      volume:
+        - /sys/fs/cgroup:/sys/fs/cgroup:ro
+        - <%=ENV['PWD']%>:/opt/workspace # Make the working directory available inside the container
+      run_options:
+        tmpfs:
+          - /run
+          - /run/lock
 
   - name: fedora-latest
     driver_config:
@@ -70,10 +70,40 @@ platforms:
           - /run
           - /run/lock
 
+  - name: fedora-current
+    driver_config:
+      run_command: /lib/systemd/systemd
+      dockerfile: .Dockerfiles/fedora/current/Dockerfile
+      platform: fedora
+      cap_add:
+        - SYS_ADMIN
+      volume:
+        - /sys/fs/cgroup:/sys/fs/cgroup:ro
+        - <%=ENV['PWD']%>:/opt/workspace # Make the working directory available inside the container
+      run_options:
+        tmpfs:
+          - /run
+          - /run/lock
+
   - name: centos-latest
     driver_config:
       run_command: /lib/systemd/systemd
       dockerfile: .Dockerfiles/centos/latest/Dockerfile
+      platform: centos
+      cap_add:
+        - SYS_ADMIN
+      volume:
+        - /sys/fs/cgroup:/sys/fs/cgroup:ro
+        - <%=ENV['PWD']%>:/opt/workspace # Make the working directory available inside the container
+      run_options:
+        tmpfs:
+          - /run
+          - /run/lock
+
+  - name: centos-current
+    driver_config:
+      run_command: /lib/systemd/systemd
+      dockerfile: .Dockerfiles/centos/current/Dockerfile
       platform: centos
       cap_add:
         - SYS_ADMIN

@@ -7,6 +7,7 @@ matrix:
       sudo: required
       language: ruby
       rvm: 2.4
+      if: $TRAVIS_TAG =~ ^v.*$
     - os: linux
       env: KITCHEN_REGEXP="gnupg1-alpine-latest"
       services: docker
@@ -27,66 +28,112 @@ matrix:
       sudo: required
       language: ruby
       rvm: 2.4
+      if: $TRAVIS_TAG =~ ^v.*$
+    - os: linux
+      env: KITCHEN_REGEXP="gnupg1-debian-current"
+      services: docker
+      sudo: required
+      language: ruby
+      rvm: 2.4
+      if: branch = stable-builds
     - os: linux
       env: KITCHEN_REGEXP="gnupg1-fedora-latest"
       services: docker
       sudo: required
       language: ruby
       rvm: 2.4
+      if: $TRAVIS_TAG =~ ^v.*$
+    - os: linux
+      env: KITCHEN_REGEXP="gnupg1-fedora-current"
+      services: docker
+      sudo: required
+      language: ruby
+      rvm: 2.4
+      if: branch = stable-builds
     - os: linux
       env: KITCHEN_REGEXP="gnupg1-ubuntu-latest"
       services: docker
       sudo: required
       language: ruby
       rvm: 2.4
+      if: $TRAVIS_TAG =~ ^v.*$
     - os: linux
-      env: KITCHEN_REGEXP="gnupg1-ubuntu-rolling"
+      env: KITCHEN_REGEXP="gnupg1-ubuntu-current"
       services: docker
       sudo: required
       language: ruby
       rvm: 2.4
+      if: branch = stable-builds
     - os: linux
       env: KITCHEN_REGEXP="gnupg2-alpine-latest"
       services: docker
       sudo: required
       language: ruby
       rvm: 2.4
+      if: $TRAVIS_TAG =~ ^v.*$
+    - os: linux
+      env: KITCHEN_REGEXP="gnupg2-alpine-current"
+      services: docker
+      sudo: required
+      language: ruby
+      rvm: 2.4
+      if: branch = stable-builds
     - os: linux
       env: KITCHEN_REGEXP="gnupg2-debian-latest"; GITSECRET_DIST="deb"
       services: docker
       sudo: required
       language: ruby
       rvm: 2.4
+      if: $TRAVIS_TAG =~ ^v.*$
+    - os: linux
+      env: KITCHEN_REGEXP="gnupg2-debian-current"
+      services: docker
+      sudo: required
+      language: ruby
+      rvm: 2.4
+      if: branch = stable-builds
     - os: linux
       env: KITCHEN_REGEXP="gnupg2-fedora-latest"; GITSECRET_DIST="rpm"
       services: docker
       sudo: required
       language: ruby
       rvm: 2.4
+      if: $TRAVIS_TAG =~ ^v.*$
+    - os: linux
+      env: KITCHEN_REGEXP="gnupg2-fedora-current"
+      services: docker
+      sudo: required
+      language: ruby
+      rvm: 2.4
+      if: branch = stable-builds
     - os: linux
       env: KITCHEN_REGEXP="gnupg2-centos-latest"
       services: docker
       sudo: required
       language: ruby
       rvm: 2.4
+      if: $TRAVIS_TAG =~ ^v.*$
     - os: linux
-      env: KITCHEN_REGEXP="gnupg2-ubuntu-rolling"
+      env: KITCHEN_REGEXP="gnupg2-centos-current"
       services: docker
       sudo: required
       language: ruby
       rvm: 2.4
+      if: branch = stable-builds
     - os: linux
       env: KITCHEN_REGEXP="gnupg-git-debian-latest"; GITSECRET_DIST="make"
       services: docker
       sudo: required
       language: ruby
       rvm: 2.4
+      if: $TRAVIS_TAG =~ ^v.*$
     - os: linux
-      env: KITCHEN_REGEXP="gnupg-git-ubuntu-rolling"
+      env: KITCHEN_REGEXP="gnupg-git-debian-current"
       services: docker
       sudo: required
       language: ruby
       rvm: 2.4
+      if: branch = stable-builds
     - os: osx
       env: GITSECRET_DIST="brew"
       sudo: required
