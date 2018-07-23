@@ -20,7 +20,7 @@ matrix:
       sudo: required
       language: ruby
       rvm: 2.4
-      if: branch = master
+      if: branch = stable-builds
     - os: linux
       env: KITCHEN_REGEXP="gnupg1-debian-latest"
       services: docker
