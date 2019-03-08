@@ -103,29 +103,17 @@ before_deploy:
   - chmod +x ".ci/before_deploy.sh" && ".ci/before_deploy.sh"
 
 deploy:
-  - provider: bintray
-    skip_cleanup: true
-    on:
-      all_branches: true
-      tag: true
-      condition: "$TRAVIS_TAG =~ ^v.*$ && $GITSECRET_DIST == deb"
-    file: "build/deb_descriptor.json"
-    user: "sobolevn"
-    key: "$BINTRAY_API_KEY"
-    passphrase: "$BINTRAY_GPG_PASS"
-  - provider: bintray
-    skip_cleanup: true
-    on:
-      all_branches: true
-      tag: true
-      condition: "$TRAVIS_TAG =~ ^v.*$ && $GITSECRET_DIST == rpm"
-    file: "build/rpm_descriptor.json"
-    user: "sobolevn"
-    key: "$BINTRAY_API_KEY"
-    passphrase: "$BINTRAY_GPG_PASS"
+  provider: releases
+  api_key:
+    secure: nTJXaiVFO5OTB3Y7Yt+aCIDIK192MCPYdLrR2ZHD7VUbU5GJ5AgNqZl/l6HqBfbUG4DPwJrlRr69TDIyAgubi07CqxweYr2gsssvEU8BNC7nHGV+UMC9j/bXj9++g1Lu9IfxEOk/cf+mEzeyPONiB3TNfUIA76r6yL51qq7vRpJNLAEfXMWS1FRytf+S8IBekqo53Vd7U9vlSyW1ESMbJ0M4L3dRBTwPIQYRqMJmJSH//6UEHK55V3GU4V8fymxqE0Uh4ALPgVin9dCV8e4R0+SF0Fm12a99IX0OqmykaxCg/0mOltKqOqJVIBC1uqGpkx+0BVQs+Q2LuWt5Pgds0ve0A0FU28JyFyH5yZsNbj0bsVtp4qSkFbkld7lQE6gcha3PXPS/2rnSiMhufKbEKeTfKiPhLb7vIgypziytU4IATGo9Y2SqVk49YFjfSx8aLne37BllcP1yIXHjOP8c9eLRzrFQrwrR6FWmXmDBh18Y0EGopuo8TE9jB+R2VMxRjoJ3jlhuiEwGDYLzrU/qICe5SCkQ3TQ0DpKAb8rIBnnnnxqGQYZRJtylGq9H+bDNPrcfU/aNY9HLbZIkmyMcP+6CN/DWjSa0yec3LRmBb/OoC0/6rTHuNWZ+ZH7P182sEzYMw8kazMVoEell8Zs1m/1uEZAjLNxcVvsI7aNRZy8=
+  file: CHANGELOG.md
+  on:
+    all_branches: true
+    tag: true
+    condition: "$TRAVIS_TAG =~ ^v.*$"
 
 after_deploy:
-  - chmod +x ".ci/after_deploy.sh" && ".ci/after_deploy.sh"
+  - chmod +x ".ci/github_release_script.sh" && ".ci/github_release_script.sh"
 
 notifications:
   email:
