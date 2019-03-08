@@ -100,7 +100,7 @@ script:
   - chmod +x ".ci/script.sh" && ".ci/script.sh"
 
 before_deploy:
-  - chmod +x ".ci/before_deploy.sh" && ".ci/before_deploy.sh"
+  - chmod +x ".ci/before_deploy.sh" && ".ci/before_deploy.sh" && chmod +x ".ci/github_release_script.sh" && ".ci/github_release_script.sh"
 
 deploy:
   provider: releases
