@@ -53,7 +53,7 @@ function teardown {
 
 
 @test "run 'add' for unignored file with '-i'" {
-  local test_file='test_file.auto_ignore'   # TODO - paramaterize filename
+  local test_file='test_file.auto_ignore'   # TODO - parameterize filename
   touch "$test_file"
   echo "content" > "$test_file"
 
@@ -67,12 +67,13 @@ function teardown {
 }
 
 
-@test "run 'add' for unignored file with '-i' in subfolder" {
+@test "run 'add' for un-ignored file with '-i' in subfolder" {
   # This test covers this issue:
   # https://github.com/sobolevn/git-secret/issues/85 task 1
 
   if [[ "$BATS_RUNNING_FROM_GIT" -eq 1 ]]; then
-    skip "this test is skipped while 'git commmit'"
+    # See #334 for more about this
+    skip "this test is skipped while 'git commit'"
   fi
 
   # Preparations:
@@ -105,10 +106,10 @@ function teardown {
 
 @test "run 'add' for relative path" {
   if [[ "$BATS_RUNNING_FROM_GIT" -eq 1 ]]; then
-    skip "this test is skipped while 'git commmit'"
+    skip "this test is skipped while 'git commit'. See #334"
   fi
 
-  # Prepations:
+  # Preparations:
   local root='test_dir'
   local node="$root/node"
   local sibling="$root/sibling"
@@ -142,6 +143,11 @@ function teardown {
 
 
 @test "run 'add' for file in subfolder" {
+  if [[ "$BATS_RUNNING_FROM_GIT" -eq 1 ]]; then
+    # See #334 for more about this
+    skip "this test is skipped while 'git commit'"
+  fi
+
   # Preparations:
   local test_file="$TEST_DEFAULT_FILENAME"
   local test_dir='test_dir'

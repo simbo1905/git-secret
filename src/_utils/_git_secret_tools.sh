@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 # Folders:
-_SECRETS_DIR=".gitsecret"
+_SECRETS_DIR=${SECRETS_DIR:-".gitsecret"}   
+# if SECRETS_DIR env var is set, use that instead of .gitsecret
+# for full path to secrets dir, use _get_secrets_dir() from _git_secret_tools.sh
 _SECRETS_DIR_KEYS="${_SECRETS_DIR}/keys"
 _SECRETS_DIR_PATHS="${_SECRETS_DIR}/paths"
 
@@ -11,11 +13,21 @@ _SECRETS_DIR_KEYS_TRUSTDB="${_SECRETS_DIR_KEYS}/trustdb.gpg"
 
 _SECRETS_DIR_PATHS_MAPPING="${_SECRETS_DIR_PATHS}/mapping.cfg"
 
+# _SECRETS_VERBOSE is expected to be empty or '1'. 
+# Empty means 'off', any other value means 'on'.
+# shellcheck disable=SC2153
+if [[ -n "$SECRETS_VERBOSE" ]] && [[ "$SECRETS_VERBOSE" -ne 0 ]]; then
+    # shellcheck disable=SC2034
+    _SECRETS_VERBOSE='1'
+fi
+
 : "${SECRETS_EXTENSION:=".secret"}"
 
 # Commands:
 : "${SECRETS_GPG_COMMAND:="gpg"}"
 : "${SECRETS_CHECKSUM_COMMAND:="_os_based __sha256"}"
+: "${SECRETS_OCTAL_PERMS_COMMAND:="_os_based __get_octal_perms"}"
+: "${SECRETS_EPOCH_TO_DATE:="_os_based __epoch_to_date"}"
 
 
 # AWK scripts:
@@ -84,7 +96,7 @@ AWK_GPG_VER_CHECK='
 '
 
 # This is 1 for gpg version 2.1 or greater, otherwise 0
-GPG_VER_21="$(gpg --version | gawk "$AWK_GPG_VER_CHECK")"
+GPG_VER_21="$($SECRETS_GPG_COMMAND --version | gawk "$AWK_GPG_VER_CHECK")"
 
 
 # Bash:
@@ -115,6 +127,10 @@ function _os_based {
 	
     MINGW*)
       "$1_linux" "${@:2}"
+    ;;
+
+    FreeBSD)
+      "$1_freebsd" "${@:2}"
     ;;
 
     # TODO: add MS Windows support.
@@ -165,18 +181,9 @@ function _file_has_line {
 }
 
 
-function _delete_line {
-  local escaped_path
-  # shellcheck disable=2001
-  escaped_path=$(echo "$1" | sed -e 's/[\/&]/\\&/g') # required
-
-  local line="$2" # required
-
-  sed -i.bak "/$escaped_path/d" "$line"
-}
-
 
 # this sets the global variable 'filename'
+# currently this function is only used by 'hide'
 function _temporary_file {
   # This function creates temporary file
   # which will be removed on system exit.
@@ -185,24 +192,6 @@ function _temporary_file {
   trap 'echo "cleaning up..."; rm -f "$filename";' EXIT
 }
 
-
-function _unique_filename {
-  # First parameter is base-path, second is filename,
-  # third is optional extension.
-  local n=0
-  local base_path="$1"
-  local result="$2"
-
-  while true; do
-    if [[ ! -f "$base_path/$result" ]]; then
-      break
-    fi
-
-    n=$(( n + 1 ))
-    result="${2}-${n}" # calling to the original "$2"
-  done
-  echo "$result"
-}
 
 # Helper function
 
@@ -367,7 +356,7 @@ function _is_tracked_in_git {
 
 function _get_git_root_path {
   # We need this function to get the location of the `.git` folder,
-  # since `.gitsecret` must be on the same level.
+  # since `.gitsecret` (or value set by SECRETS_DIR env var) must be on the same level.
 
   local result
   result=$(git rev-parse --show-toplevel)
@@ -423,23 +412,50 @@ function _get_secrets_dir_paths_mapping {
 
 function _abort {
   local message="$1" # required
+  local exit_code=${2:-"1"}     # defaults to 1
 
   >&2 echo "git-secret: abort: $message"
-  exit 1
+  exit "$exit_code"
+}
+
+# _warn() sends warnings to stdout so user sees them
+function _warn {
+  local message="$1" # required
+
+  >&2 echo "git-secret: warning: $message"
+}
+
+# _warn_or_abort "$error_message" "$exit_code" "$error_ok"
+function _warn_or_abort {
+  local message="$1"            # required
+  local exit_code=${2:-"1"}     # defaults to 1
+  local error_ok=${3:-0}        # can be 0 or 1
+
+  if [[ "$error_ok" -eq "0" ]]; then
+    if [[ "$exit_code" -eq "0" ]]; then 
+      # if caller sends an exit_code of 0, we change it to 1 before aborting. 
+      exit_code=1
+    fi
+    _abort "$message" "$exit_code"
+  else
+    _warn "$message" "$exit_code"
+  fi
 }
 
 function _find_and_clean {
   # required:
   local pattern="$1" # can be any string pattern
 
-  # optional:
-  local verbose=${2:-""} # can be empty or should be equal to "v"
+  local verbose_opt=''
+  if [[ -n "$_SECRETS_VERBOSE" ]]; then
+    verbose_opt='v';
+  fi
 
   local root
   root=$(_get_git_root_path)
 
   # shellcheck disable=2086
-  find "$root" -path "$pattern" -type f -print0 | xargs -0 rm -f$verbose
+  find "$root" -path "$pattern" -type f -print0 | xargs -0 rm -f$verbose_opt
 }
 
 
@@ -447,17 +463,13 @@ function _find_and_clean_formatted {
   # required:
   local pattern="$1" # can be any string pattern
 
-  # optional:
-  local verbose=${2:-""} # can be empty or should be equal to "v"
-  local message=${3:-"cleaning:"} # can be any string
-
-  if [[ ! -z "$verbose" ]]; then
-    echo && echo "$message"
+  if [[ -n "$_SECRETS_VERBOSE" ]]; then
+    echo && echo "cleaning:"
   fi
 
-  _find_and_clean "$pattern" "$verbose"
+  _find_and_clean "$pattern"
 
-  if [[ ! -z "$verbose" ]]; then
+  if [[ -n "$_SECRETS_VERBOSE" ]]; then
     echo
   fi
 }
@@ -554,10 +566,47 @@ function _user_required {
   fi
 }
 
+# note: this has the same 'username matching' issue described in 
+# https://github.com/sobolevn/git-secret/issues/268
+# where it will match emails that have other emails as substrings.
+# we need to use fingerprints for a unique key id with gpg.
+function _get_user_key_expiry {
+  # This function returns the user's key's expiry, as an epoch. 
+  # It will return the empty string if there is no expiry date for the user's key
+  local username="$1"
+  local line
 
-function _get_raw_filename {
-  echo "$(dirname "$1")/$(basename "$1" "$SECRETS_EXTENSION")" | sed -e 's#^\./##'
+  local secrets_dir_keys
+  secrets_dir_keys=$(_get_secrets_dir_keys)
+
+  line=$($SECRETS_GPG_COMMAND --homedir "$secrets_dir_keys" --no-permission-warning --list-public-keys --with-colon --fixed-list-mode "$username" | grep ^pub:)
+
+  local expiry_epoch
+  expiry_epoch=$(echo "$line" | cut -d: -f7)
+  echo "$expiry_epoch"
 }
+
+
+function _assert_keychain_contains_emails {
+  local homedir=$1
+  local emails=$2
+
+  local gpg_uids
+  gpg_uids=$(_get_users_in_gpg_keyring "$homedir")
+  for email in "${emails[@]}"; do
+    local email_ok=0
+    for uid in $gpg_uids; do
+        if [[ "$uid" == "$email" ]]; then
+            email_ok=1
+        fi
+    done
+    if [[ $email_ok -eq 0 ]]; then
+      _abort "email not found in gpg keyring: $email"
+    fi
+  done
+}
+
+
 
 
 function _get_encrypted_filename {
@@ -567,20 +616,33 @@ function _get_encrypted_filename {
 }
 
 
-
-
-function _get_users_in_keyring {
-  # This function is required to show the users in the keyring.
+function _get_users_in_gpg_keyring {
+  # show the users in the gpg keyring.
   # `whoknows` command uses it internally.
-  # It basically just parses the `gpg` public keys
+  # parses the `gpg` public keys
+  local homedir=$1
+  local result
+  local args=()
+  if [[ -n "$homedir" ]]; then
+    args+=( "--homedir" "$homedir" )
+  fi
 
+  # pluck out 'uid' lines, fetch 10th field, extract part in <> if it exists (else leave alone).
+  # we use --fixed-list-mode so older versions of gpg emit 'uid:' lines.
+  # sed at the end is to extract email from <>. (If there's no <>, then the line is just an email address anyway.)
+  result=$($SECRETS_GPG_COMMAND "${args[@]}" --no-permission-warning --list-public-keys --with-colon --fixed-list-mode | grep ^uid: | cut -d: -f10 | sed 's/.*<\(.*\)>.*/\1/')
+
+  echo "$result"
+}
+
+
+function _get_users_in_gitsecret_keyring {
+  # show the users in the gitsecret keyring.
   local secrets_dir_keys
   secrets_dir_keys=$(_get_secrets_dir_keys)
     
-  # pluck out 'uid' lines, fetch 10th field, extract part in <> if it exists (else leave alone)
-  # we use --fixed-list-mode so older versions of gpg emit 'uid:' lines
   local result
-  result=$($SECRETS_GPG_COMMAND --homedir "$secrets_dir_keys" --no-permission-warning --list-public-keys --with-colon --fixed-list-mode | grep ^uid: | gawk -F':' '{print $10;}' | sed 's/.*<\(.*\)>.*/\1/')
+  result=$(_get_users_in_gpg_keyring "$secrets_dir_keys")
 
   echo "$result"
 }
@@ -592,7 +654,7 @@ function _get_recipients {
   # It basically just parses the `gpg` public keys
 
   local result
-  result=$(_get_users_in_keyring | sed 's/^/-r/')   # put -r before each user
+  result=$(_get_users_in_gitsecret_keyring | sed 's/^/-r/')   # put -r before each user
   echo "$result"
 }
 
@@ -606,6 +668,7 @@ function _decrypt {
   local force=${3:-0} # can be 0 or 1
   local homedir=${4:-""}
   local passphrase=${5:-""}
+  local error_ok=${6:-0} # can be 0 or 1
 
   local encrypted_filename
   encrypted_filename=$(_get_encrypted_filename "$filename")
@@ -620,7 +683,7 @@ function _decrypt {
     args+=( "--yes" )
   fi
 
-  if [[ ! -z "$homedir" ]]; then
+  if [[ -n "$homedir" ]]; then
     args+=( "--homedir" "$homedir" )
   fi
 
@@ -628,17 +691,33 @@ function _decrypt {
     args+=( "--pinentry-mode" "loopback" )
   fi
 
+  if [[ -z "$_SECRETS_VERBOSE" ]]; then
+    args+=( "--quiet" )
+  fi
+
+  set +e   # disable 'set -e' so we can capture exit_code
+
+  #echo "# gpg passphrase: $passphrase" >&3
   local exit_code
-  if [[ ! -z "$passphrase" ]]; then
-    echo "$passphrase" | $SECRETS_GPG_COMMAND "${args[@]}" --quiet --batch --yes --no-tty --passphrase-fd 0 \
+  if [[ -n "$passphrase" ]]; then
+    echo "$passphrase" | $SECRETS_GPG_COMMAND "${args[@]}" --batch --yes --no-tty --passphrase-fd 0 \
       "$encrypted_filename"
     exit_code=$?
   else
-    $SECRETS_GPG_COMMAND "${args[@]}" "--quiet" "$encrypted_filename"
+    $SECRETS_GPG_COMMAND "${args[@]}" "$encrypted_filename"
     exit_code=$?
   fi
-  if [[ "$exit_code" -ne 0 ]]; then
-    _abort "problem decrypting file with gpg: exit code $exit_code: $filename"
+
+  set -e  # re-enable set -e
+
+  # note that according to https://github.com/sobolevn/git-secret/issues/238 , 
+  # it's possible for gpg to return a 0 exit code but not have decrypted the file
+  #echo "# gpg exit code: $exit_code, error_ok: $error_ok" >&3
+  if [[ "$exit_code" -ne "0" ]]; then
+    local msg="problem decrypting file with gpg: exit code $exit_code: $filename"
+    _warn_or_abort "$msg" "$exit_code" "$error_ok"
   fi
+
+  # at this point the file should be written to disk or output to stdout
 }
 

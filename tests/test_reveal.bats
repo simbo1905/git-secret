@@ -55,6 +55,31 @@ function teardown {
 }
 
 
+@test "run 'reveal' with '-P'" {
+  rm "$FILE_TO_HIDE"
+
+  local password=$(test_user_password "$TEST_DEFAULT_USER")
+
+  local secret_file=$(_get_encrypted_filename "$FILE_TO_HIDE")
+  chmod o-rwx "$secret_file"
+
+  run git secret reveal -P -d "$TEST_GPG_HOMEDIR" -p "$password"
+
+  [ "$status" -eq 0 ]
+
+  local secret_perm
+  local file_perm
+  secret_perm=$(ls -l "$FILE_TO_HIDE$SECRETS_EXTENSION" | cut -d' ' -f1)
+  file_perm=$(ls -l "$FILE_TO_HIDE" | cut -d' ' -f1)
+
+  # text prefixed with '# ' and sent to file descriptor 3 is 'diagnostic' (debug) output for devs
+  #echo "# secret_perm: $secret_perm, file_perm: $file_perm" >&3    
+
+  [ "$secret_perm" = "$file_perm" ]
+
+  [ -f "$FILE_TO_HIDE" ]
+}
+
 @test "run 'reveal' with wrong password" {
   rm "$FILE_TO_HIDE"
 
@@ -68,7 +93,7 @@ function teardown {
   # Preparations
   rm "$FILE_TO_HIDE"
 
-  local atacker_fingerprint=$(install_fixture_full_key "$TEST_ATTACKER_USER")
+  local attacker_fingerprint=$(install_fixture_full_key "$TEST_ATTACKER_USER")
   local password=$(test_user_password "$TEST_ATTACKER_USER")
 
   run git secret reveal -d "$TEST_GPG_HOMEDIR" -p "$password"
@@ -78,9 +103,30 @@ function teardown {
   [ ! -f "$FILE_TO_HIDE" ]
 
   # Cleaning up:
-  uninstall_fixture_full_key "$TEST_ATTACKER_USER" "$atacker_fingerprint"
+  uninstall_fixture_full_key "$TEST_ATTACKER_USER" "$attacker_fingerprint"
 }
 
+@test "run 'reveal' for attacker with -F (force)" {
+  # Preparations
+  rm "$FILE_TO_HIDE"
+
+  local attacker_fingerprint=$(install_fixture_full_key "$TEST_ATTACKER_USER")
+  local password=$(test_user_password "$TEST_ATTACKER_USER")
+
+  run git secret reveal -F -d "$TEST_GPG_HOMEDIR" -p "$password"
+
+  #echo "# status is $status" >&3
+
+  # This should return a status code of 1 also.  Not sure how to test that we don't die early
+  [ "$status" -eq 0 ]
+  [ ! -f "$FILE_TO_HIDE" ]
+
+
+  touch "$FILE_TO_HIDE"  #create this file so uninstall below works
+
+  # Cleaning up:
+  uninstall_fixture_full_key "$TEST_ATTACKER_USER" "$attacker_fingerprint"
+}
 
 @test "run 'reveal' for multiple users (with key deletion)" {
   # Preparations:

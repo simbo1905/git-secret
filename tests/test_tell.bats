@@ -17,6 +17,36 @@ function teardown {
   unset_current_state
 }
 
+@test "run 'tell' with '-v'" {
+  run git secret tell -d "$TEST_GPG_HOMEDIR" -v "$TEST_DEFAULT_USER"
+  #echo "$output" | sed "s/^/# '$BATS_TEST_DESCRIPTION' output: /" >&3
+
+  [[ "$output" == *"created"* ]]
+  [[ "$output" == *"gpg:"* ]]
+  [[ "$output" == *"$TEST_DEFAULT_USER"* ]]
+  [ "$status" -eq 0 ]
+}
+
+@test "run 'tell' without '-v'" {
+  run git secret tell -d "$TEST_GPG_HOMEDIR"  "$TEST_DEFAULT_USER"
+  #echo "$output" | sed "s/^/# '$BATS_TEST_DESCRIPTION' output: /" >&3
+
+  [[ "$output" != *"imported:"* ]]
+  [[ "$output" == *"$TEST_DEFAULT_USER"* ]]
+  [ "$status" -eq 0 ]
+}
+
+@test "run 'tell' on substring of emails" {
+  run git secret tell -d "$TEST_GPG_HOMEDIR" user
+  # this should give an error because there is no user named 'user', 
+  # even though there are users with the substring 'user'.
+  # See issue https://github.com/sobolevn/git-secret/issues/176 
+  [ "$status" -eq 1 ]
+
+  run git secret whoknows 
+  [ "$status" -eq 1 ]   # should error when there are no users told
+  
+}
 
 @test "fail on no users" {
   run _user_required
@@ -85,7 +115,7 @@ function teardown {
 
 
 @test "run 'tell' with '-m'" {
-  email=$(test_user_email $TEST_DEFAULT_USER)
+  local email="$TEST_DEFAULT_USER"
 
   git_set_config_email "$email"
   run git secret tell -d "$TEST_GPG_HOMEDIR" -m
@@ -94,7 +124,7 @@ function teardown {
 
 
 @test "run 'tell' with '-m' (empty email)" {
-  # Prepartions:
+  # Preparations:
   git_set_config_email "" # now it should not allow to add yourself
 
   run git secret tell -d "$TEST_GPG_HOMEDIR" -m
@@ -106,7 +136,7 @@ function teardown {
   # Preparations:
   install_fixture_key "$TEST_SECOND_USER"
 
-  # Testing the command iteself:
+  # Testing the command itself:
   run git secret tell -d "$TEST_GPG_HOMEDIR" \
     "$TEST_DEFAULT_USER" "$TEST_SECOND_USER"
 
@@ -126,7 +156,7 @@ function teardown {
 
 @test "run 'tell' in subfolder" {
   if [[ "$BATS_RUNNING_FROM_GIT" -eq 1 ]]; then
-    skip "this test is skipped while 'git commmit'"
+    skip "this test is skipped while 'git commit'. See #334"
   fi
 
   # Preparations

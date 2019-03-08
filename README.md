@@ -1,6 +1,6 @@
 # git-secret
 
-[![Backers on Open Collective](https://opencollective.com/git-secret/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/git-secret/sponsors/badge.svg)](#sponsors) [![Build Status](https://img.shields.io/travis/sobolevn/git-secret/master.svg)](https://travis-ci.org/sobolevn/git-secret) [![Homebrew](https://img.shields.io/homebrew/v/git-secret.svg)](http://braumeister.org/formula/git-secret) [![Bintray deb](https://img.shields.io/bintray/v/sobolevn/deb/git-secret.svg)](https://bintray.com/sobolevn/deb/git-secret/view)
+[![Backers on Open Collective](https://opencollective.com/git-secret/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/git-secret/sponsors/badge.svg)](#sponsors) [![Build Status](https://img.shields.io/travis/sobolevn/git-secret/master.svg)](https://travis-ci.org/sobolevn/git-secret) [![Homebrew](https://img.shields.io/homebrew/v/git-secret.svg)](https://formulae.brew.sh/formula/git-secret) [![Bintray deb](https://img.shields.io/bintray/v/sobolevn/deb/git-secret.svg)](https://bintray.com/sobolevn/deb/git-secret/view)
 
 [![git-secret](https://raw.githubusercontent.com/sobolevn/git-secret/gh-pages/images/git-secret-big.png)](http://git-secret.io/)
 
@@ -8,12 +8,16 @@
 ## What is `git-secret`?
 
 `git-secret` is a bash tool which stores private data inside a git repo. 
-`git-secret` encrypts tracked files with public keys for users whom you trust using `gpg`, 
-allowing permitted users to access encrypted data using their secret keys. 
-With `git-secret`, changes to access rights are made easy and private-public key issues are handled for you. 
-Passwords do not need to be changed with `git-secret` when someone's permission is revoked - 
+`git-secret` encrypts files with permitted users' public keys,
+allowing users you trust to access encrypted data using pgp and their secret keys. 
+
+With `git-secret`, changes to access rights are simplified, and private-public key issues are handled for you. 
+
+When someone's permission is revoked, secrets do not need to be changed with `git-secret` -
 just remove their key from the keychain using `git secret killperson their@email.com`, 
-and re-encrypt the files, and they won't be able to decrypt secrets anymore.
+re-encrypt the files, and they won't be able to decrypt secrets anymore.
+If you think the user might have copied the contents of the keys when they had access, then
+you should also change the secrets.
 
 
 ## Preview
@@ -36,7 +40,7 @@ See the [installation section](http://git-secret.io/installation) for the detail
 - `gawk` since `4.0.2`
 - `git` since `1.8.3.1`
 - `gpg` since `gnupg 1.4` to `gnupg 2.X`
-- `sha256sum` since `8.21`
+- `sha256sum` since `8.21` (on freebsd and MacOS `shasum` is used instead)
 
 
 ## Contributing
@@ -55,7 +59,7 @@ If your secret file holds more data than just a single password these
 precautions should not be necessary, but could be followed for greater
 security.
 
-If you found any security related issues, please do not enclose it in public. Send an email to `security@wemake.services`
+If you found any security related issues, please do not disclose it in public. Send an email to `security@wemake.services`
 
 
 ## Changelog
@@ -66,7 +70,24 @@ If you found any security related issues, please do not enclose it in public. Se
 ## Contributors
 
 This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
-<a href="graphs/contributors"><img src="https://opencollective.com/git-secret/contributors.svg?width=890" /></a>
+<a href="https://github.com/sobolevn/git-secret/graphs/contributors"><img src="https://opencollective.com/git-secret/contributors.svg?width=890" /></a>
+
+
+## Packagers
+
+Thanks also to all the people and groups who package git-secret to be easier to install on particular OSes or distributions!
+
+Here are some packagings of git-secret that we're aware of:
+
+- https://pkgs.alpinelinux.org/package/edge/testing/x86/git-secret
+- https://aur.archlinux.org/packages/git-secret/
+- https://packages.ubuntu.com/bionic/git-secret
+- https://packages.debian.org/sid/git-secret
+
+Such packages are considered 'downstream' because the git-secret code 'flows' from the git-secret repository 
+to the various rpm/deb/dpkg/etc packages that are created for specific OSes and distributions.
+
+We have also added notes specifically for packagers in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 
 ## Backers

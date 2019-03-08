@@ -28,16 +28,62 @@ function teardown {
 @test "run 'hide' normally" {
   run git secret hide
 
+  #echo "$output" | sed "s/^/# '$BATS_TEST_DESCRIPTION' output: /" >&3
+
   # Command must execute normally:
   [ "$status" -eq 0 ]
-  [ "$output" = "done. all 1 files are hidden." ]
+  [ "$output" = "done. 1 of 1 files are hidden." ]
 
-  # New files should be crated:
+  # New files should be created:
   local encrypted_file=$(_get_encrypted_filename "$FILE_TO_HIDE")
   [ -f "$encrypted_file" ]
 }
 
+@test "run 'hide' normally with SECRETS_VERBOSE=1" {
+  SECRETS_VERBOSE=1 run git secret hide
+
+  # Command must execute normally. 
+  [ "$status" -eq 0 ]
+  [[ "$output" == "done. 1 of 1 files are hidden." ]]
+}
+
+@test "run 'hide' with '-P'" {
+
+  # attempt to alter permissions on input file
+  chmod o-rwx "$FILE_TO_HIDE"
+
+  run git secret hide -P
+
+  #echo "$output" | sed "s/^/# '$BATS_TEST_DESCRIPTION' output: /" >&3
+
+  # Command must execute normally:
+  [ "$status" -eq 0 ]
+  [ "$output" = "done. 1 of 1 files are hidden." ]
+
+  # New files should be created:
+  local encrypted_file=$(_get_encrypted_filename "$FILE_TO_HIDE")
+  [ -f "$encrypted_file" ]
+
+  # permissions should match. We don't have access to SECRETS_OCTAL_PERMS_COMMAND here
+  local secret_perm
+  local file_perm   
+  secret_perm=$(ls -l "$encrypted_file" | cut -d' ' -f1)    
+  file_perm=$(ls -l "$FILE_TO_HIDE" | cut -d' ' -f1)
+
+  # text prefixed with '# ' and sent to file descriptor 3 is 'diagnostic' (debug) output for devs
+  #echo "# '$BATS_TEST_DESCRIPTION': $secret_perm, file_perm: $file_perm" >&3
+
+  [ "$secret_perm" = "$file_perm" ]
+
+}
+
 @test "run 'hide' from inside subdirectory" {
+
+  if [[ "$BATS_RUNNING_FROM_GIT" -eq 1 ]]; then
+    # See #334 for more about this
+    skip "this test is skipped while 'git commit'"
+  fi
+
   # Preparations:
   local root_dir='test_sub_dir'
   mkdir -p "$root_dir"
@@ -71,7 +117,7 @@ function teardown {
   # Now it should return an error because one file can't be found
   run git secret hide
   [ "$status" -ne 0 ]
-  [ "$output" != "done. all 2 files are hidden." ]
+  [ "$output" != "done. 2 of 2 files are hidden." ]
 }
 
 
@@ -83,8 +129,9 @@ function teardown {
 
   # Now it should hide 2 files:
   run git secret hide
+  #echo "$output" | sed "s/^/# '$BATS_TEST_DESCRIPTION' output: /" >&3
   [ "$status" -eq 0 ]
-  [ "$output" = "done. all 2 files are hidden." ]
+  [ "$output" = "done. 2 of 2 files are hidden." ]
 
   # Cleaning up:
   rm "$second_file"
@@ -98,10 +145,10 @@ function teardown {
   [ "$status" -eq 0 ]
   # git secret hide -m, use temp file so cleaning should take place
   [[ "${#lines[@]}" -eq 2 ]]
-  [ "${lines[0]}" = "done. all 1 files are hidden." ]
+  [ "${lines[0]}" = "done. 1 of 1 files are hidden." ]
   [ "${lines[1]}" = "cleaning up..." ]
 
-  # New files should be crated:
+  # New files should be created:
   local encrypted_file=$(_get_encrypted_filename "$FILE_TO_HIDE")
   [ -f "$encrypted_file" ]
 }
@@ -112,12 +159,13 @@ function teardown {
   path_mappings=$(_get_secrets_dir_paths_mapping)
   run git secret hide -m
 
+  #echo "$output" | sed "s/^/# '$BATS_TEST_DESCRIPTION' output: /" >&3
 
   # Command must execute normally:
   [ "$status" -eq 0 ]
   # git secret hide -m, uses a temp file so cleaning should take place
   [[ "${#lines[@]}" -eq 2 ]]
-  [ "${lines[0]}" = "done. all 1 files are hidden." ]
+  [ "${lines[0]}" = "done. 1 of 1 files are hidden." ]
   [ "${lines[1]}" = "cleaning up..." ]
   # back path mappings
   cp "${path_mappings}" "${path_mappings}.bak"
@@ -126,11 +174,13 @@ function teardown {
   # compare
   [ "$status" -eq 0 ]
   [[ "${#lines[@]}" -eq 1 ]]
-  [ "$output" = "done. all 1 files are hidden." ]
+  
+  # output says 0 of 1 files are hidden because checksum didn't change and we didn't need to hide it again.
+  [ "$output" = "done. 0 of 1 files are hidden." ]
   # no changes should occur to path_mappings files
   cmp -s "${path_mappings}" "${path_mappings}.bak"
 
-  # New files should be crated:
+  # New files should be created:
   local encrypted_file=$(_get_encrypted_filename "$FILE_TO_HIDE")
   [ -f "$encrypted_file" ]
 }
@@ -157,8 +207,6 @@ function teardown {
   run git secret hide -d
   [ "$status" -eq 0 ]
 
-  ls && pwd
-
   # File must be removed:
   [ ! -f "$FILE_TO_HIDE" ]
 }
@@ -167,8 +215,6 @@ function teardown {
 @test "run 'hide' with '-d' and '-v'" {
   run git secret hide -v -d
   [ "$status" -eq 0 ]
-
-  ls && pwd
 
   # File must be removed:
   [ ! -f "$FILE_TO_HIDE" ]
@@ -211,5 +257,5 @@ function teardown {
 
   run git secret hide
   [ "$status" -eq 0 ]
-  [ "$output" = "done. all 1 files are hidden." ]
+  [ "$output" = "done. 1 of 1 files are hidden." ]
 }

@@ -26,8 +26,10 @@ function tell {
   # Reset in case getopts has been used previously in the shell.
   OPTIND=1
 
-  while getopts "hmd:" opt; do
+  while getopts "vhmd:" opt; do
     case "$opt" in
+      v) _SECRETS_VERBOSE=1;;
+
       h) _show_manual_for "tell";;
 
       m) self_email=1;;
@@ -41,7 +43,7 @@ function tell {
   shift $((OPTIND-1))
   [ "$1" = "--" ] && shift
 
-  # Validates that application is inited:
+  # Validates that application is initialized:
   _secrets_dir_exists
 
   # Command logic:
@@ -63,6 +65,8 @@ function tell {
     # we should raise an exception.
     _abort "you must provide at least one email address."
   fi
+
+  _assert_keychain_contains_emails "$homedir" "${emails[@]}"
 
   local start_key_cnt
   start_key_cnt=$(get_gpg_key_count)
@@ -93,7 +97,13 @@ function tell {
     # Importing public key to the local keychain:
     local secrets_dir_keys
     secrets_dir_keys=$(_get_secrets_dir_keys)
-    $SECRETS_GPG_COMMAND --homedir "$secrets_dir_keys" --no-permission-warning --import "$keyfile" > /dev/null 2>&1
+
+    local args=( --homedir "$secrets_dir_keys" --no-permission-warning --import "$keyfile" )
+    if [[ -z "$_SECRETS_VERBOSE" ]]; then
+      $SECRETS_GPG_COMMAND "${args[@]}" > /dev/null 2>&1
+    else
+      $SECRETS_GPG_COMMAND "${args[@]}"
+    fi
     exit_code=$?
     if [[ "$exit_code" -ne 0 ]]; then
       _abort "problem importing public key for '$email' with gpg: exit code $exit_code"

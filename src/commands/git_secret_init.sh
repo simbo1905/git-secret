@@ -58,7 +58,7 @@ function init {
   git_secret_dir=$(_get_secrets_dir)
 
   if [[ -d "$git_secret_dir" ]]; then
-    _abort 'already inited.'
+    _abort 'already initialized.'
   fi
 
   # Check if it is ignored:
@@ -72,8 +72,9 @@ function init {
   echo "'$git_secret_dir/' created."
 
   local random_seed_file
-  random_seed_file=".gitsecret/keys/random_seed"
+  random_seed_file="${_SECRETS_DIR}/keys/random_seed"
   gitignore_add_pattern "$random_seed_file"
+  gitignore_add_pattern "!*$SECRETS_EXTENSION"
 
   # TODO: git attributes to view diffs
 }

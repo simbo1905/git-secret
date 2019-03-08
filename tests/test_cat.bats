@@ -33,8 +33,17 @@ function teardown {
   [ "$status" -eq 0 ]
 
   # $output is the output from 'git secret cat' above
-  # note that currently content may differ by a newline
   [ "$FILE_CONTENTS" == "$output" ]
+}
+
+@test "run 'cat' with password argument and SECRETS_VERBOSE=1" {
+  local password=$(test_user_password "$TEST_DEFAULT_USER")
+  SECRETS_VERBOSE=1 run git secret cat -d "$TEST_GPG_HOMEDIR" -p "$password" "$FILE_TO_HIDE" 
+
+  [ "$status" -eq 0 ]
+
+  # $output _contains_ the output from 'git secret cat', may have extra output from gpg
+  [[ "$output" == *"$FILE_CONTENTS"* ]]
 }
 
 @test "run 'cat' with wrong filename" {

@@ -17,24 +17,22 @@ BEGIN { FS=":"; OFS=":"; }
 
 function _optional_clean {
   local clean="$1"
-  local verbose=${2:-""}
 
   if [[ $clean -eq 1 ]]; then
-    _find_and_clean_formatted "*$SECRETS_EXTENSION" "$verbose"
+    _find_and_clean_formatted "*$SECRETS_EXTENSION"
   fi
 }
 
 
 function _optional_delete {
   local delete="$1"
-  local verbose=${2:-""}
 
   if [[ $delete -eq 1 ]]; then
     local path_mappings
     path_mappings=$(_get_secrets_dir_paths_mapping)
 
     # We use custom formatting here:
-    if [[ ! -z "$verbose" ]]; then
+    if [[ -n "$_SECRETS_VERBOSE" ]]; then
       echo && echo 'removing unencrypted files:'
     fi
 
@@ -42,10 +40,10 @@ function _optional_delete {
       # So the formatting would not be repeated several times here:
       local filename
       filename=$(_get_record_filename "$line")
-      _find_and_clean "*$filename" "$verbose"
+      _find_and_clean "*$filename"
     done < "$path_mappings"
 
-    if [[ ! -z "$verbose" ]]; then
+    if [[ -n "$_SECRETS_VERBOSE" ]]; then
       echo
     fi
   fi
@@ -80,21 +78,26 @@ function _optional_fsdb_update_hash {
 
 function hide {
   local clean=0
+  local preserve=0
   local delete=0
   local fsdb_update_hash=0 # add checksum hashes to fsdb
-  local verbose=''
+  local force_continue=0
 
   OPTIND=1
 
-  while getopts 'cdmvh' opt; do
+  while getopts 'cFPdmvh' opt; do
     case "$opt" in
       c) clean=1;;
+
+      F) force_continue=1;;
+
+      P) preserve=1;;
 
       d) delete=1;;
 
       m) fsdb_update_hash=1;;
 
-      v) verbose='v';;
+      v) _SECRETS_VERBOSE=1;;
 
       h) _show_manual_for 'hide';;
 
@@ -110,12 +113,14 @@ function hide {
 
   # If -c option was provided, it would clean the hidden files
   # before creating new ones.
-  _optional_clean "$clean" "$verbose"
+  _optional_clean "$clean"
 
   # Encrypting files:
 
   local path_mappings
   path_mappings=$(_get_secrets_dir_paths_mapping)
+  local num_mappings
+  num_mappings=$(gawk 'END{print NR}' "$path_mappings")
 
   # make sure all the unencrypted files needed are present
   local to_hide=()
@@ -145,34 +150,58 @@ function hide {
 
     # Checking that file is valid:
     if [[ ! -f "$input_path" ]]; then
-      _abort "file not found: $input_path"
-    fi
+      # this catches the case where some decrypted files don't exist
+      _warn_or_abort "file not found: $input_path" "1" "$force_continue"
+    else
+      file_hash=$(_get_file_hash "$input_path")
+  
+      # encrypt file only if required
+      if [[ "$fsdb_file_hash" != "$file_hash" ]]; then
 
-    file_hash=$(_get_file_hash "$input_path")
+        local args=( --homedir "$secrets_dir_keys" "--no-permission-warning" --use-agent --yes "--trust-model=always" --encrypt )
 
-    # encrypt file only if required
-    if [[ "$fsdb_file_hash" != "$file_hash" ]]; then
-      # we depend on $recipients being split on whitespace
-      # shellcheck disable=SC2086
-      $SECRETS_GPG_COMMAND --homedir "$secrets_dir_keys" "--no-permission-warning" --use-agent --yes --trust-model=always --encrypt \
-        $recipients -o "$output_path" "$input_path" > /dev/null 2>&1
-      local exit_code=$?
-      if [[ "$exit_code" -ne 0 ]]; then
-        _abort "problem encrypting file with gpg: exit code $exit_code: $filename"
+        # we depend on $recipients being split on whitespace
+        # shellcheck disable=SC2206
+        args+=( $recipients -o "$output_path" "$input_path" )
+
+        set +e   # disable 'set -e' so we can capture exit_code
+
+        if [[ -n "$_SECRETS_VERBOSE" ]]; then
+          # on at least some platforms, this doesn't output anything unless there's a warning or error
+          $SECRETS_GPG_COMMAND "${args[@]}"
+        else 
+          $SECRETS_GPG_COMMAND "${args[@]}" > /dev/null 2>&1
+        fi
+        local exit_code=$?
+
+        set -e  # re-enable set -e
+
+        if [[ "$exit_code" -ne 0 ]] || [[ ! -f "$output_path" ]]; then
+          # if gpg can't encrypt a file we asked it to, that's an error unless in force_continue mode.
+          _warn_or_abort "problem encrypting file with gpg: exit code $exit_code: $filename" "$exit_code" "$force_continue"
+        fi
+        if [[ -f "$output_path" ]]; then
+          counter=$((counter+1))
+          if [[ "$preserve" == 1 ]]; then
+            local perms
+            perms=$($SECRETS_OCTAL_PERMS_COMMAND "$input_path")
+            chmod "$perms" "$output_path"
+          fi
+        fi
+  
+        # If -m option was provided, it will update unencrypted file hash
+        local key="$filename"
+        local hash="$file_hash"
+        # Update file hash if required in fsdb
+        [[ "$fsdb_update_hash" -gt 0 ]] && \
+          _optional_fsdb_update_hash "$key" "$hash"
       fi
-      # If -m option was provided, it will update unencrypted file hash
-      local key="$filename"
-      local hash="$file_hash"
-      # Update file hash if required in fsdb
-      [[ "$fsdb_update_hash" -gt 0 ]] && \
-        _optional_fsdb_update_hash "$key" "$hash"
     fi
-    counter=$((counter+1))
   done
 
   # If -d option was provided, it would delete the source files
   # after we have already hidden them.
-  _optional_delete "$delete" "$verbose"
+  _optional_delete "$delete"
 
-  echo "done. all $counter files are hidden."
+  echo "done. $counter of $num_mappings files are hidden."
 }

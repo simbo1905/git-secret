@@ -14,6 +14,12 @@ function teardown {
 }
 
 
+@test "secrets dir env var set as expected" {
+  _TEST_SECRETS_DIR=${SECRETS_DIR:-".gitsecret"}   
+  [ "${_TEST_SECRETS_DIR}" = "${_SECRETS_DIR}" ]
+}
+
+
 @test "run 'init' without '.git'" {
   remove_git_repository
 
@@ -35,7 +41,7 @@ function teardown {
   # https://github.com/sobolevn/git-secret/issues/83
 
   if [[ "$BATS_RUNNING_FROM_GIT" -eq 1 ]]; then
-    skip "this test is skipped while 'git commmit'"
+    skip "this test is skipped while 'git commit'. See #334"
   fi
 
   # Preparations
@@ -64,13 +70,13 @@ function teardown {
 }
 
 
-@test "run 'init' with '.gitsecret' already inited" {
+@test "run 'init' with '.gitsecret' already initialized" {
   local secrets_dir
   secrets_dir=$(_get_secrets_dir)
 
   mkdir "$secrets_dir"
 
   run git secret init
-  [ "$output" = "git-secret: abort: already inited." ]
+  [ "$output" = "git-secret: abort: already initialized." ]
   [ "$status" -eq 1 ]
 }
