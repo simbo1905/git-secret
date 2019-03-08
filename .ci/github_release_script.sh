@@ -13,7 +13,7 @@ version="$TRAVIS_TAG"
 # An automatic changelog generator
 gem install github_changelog_generator
 
-LAST_RELEASE_TAG=$(git tag | grep 'v.*' | tail -1)
+LAST_RELEASE_TAG=$(git tag | grep 'v.*' | tail -2 | head -1)
 
 # Generate CHANGELOG.md
 github_changelog_generator \
