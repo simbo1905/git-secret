@@ -23,7 +23,7 @@ gem install github_changelog_generator
 
 LAST_RELEASE_TAG=$(curl https://api.github.com/repos/$repo_slug/releases/latest 2>/dev/null | jq .name | sed 's/"//g')
 
-echo LAST_RELEASE_TAG=$LAST_RELEASE_TAG
+echo "LAST_RELEASE_TAG=$LAST_RELEASE_TAG"
 
 # Generate CHANGELOG.md
 github_changelog_generator \
@@ -34,7 +34,7 @@ github_changelog_generator \
 
 body="$(cat CHANGELOG.md)"
 
-cat CHANGELOG.md
+echo "body=$body"
 
 # Overwrite CHANGELOG.md with JSON data for GitHub API
 jq -n \
