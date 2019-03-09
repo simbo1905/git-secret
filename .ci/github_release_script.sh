@@ -8,7 +8,7 @@ branch="$GIT_BRANCH"
 # Example: "Jaskaranbir/MyRepo"
 repo_slug="$TRAVIS_REPO_SLUG"
 token="$GITHUB_OAUTH_TOKEN"
-version="$TRAVIS_TAG"
+version=$(cat "$TRAVIS_TAG" | sed 's/^v//1')
 
 # An automatic changelog generator
 gem install github_changelog_generator
