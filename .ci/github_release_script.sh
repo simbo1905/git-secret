@@ -23,6 +23,8 @@ gem install github_changelog_generator
 
 LAST_RELEASE_TAG=$(curl https://api.github.com/repos/$repo_slug/releases/latest 2>/dev/null | jq .name | sed 's/"//g')
 
+echo LAST_RELEASE_TAG=$LAST_RELEASE_TAG
+
 # Generate CHANGELOG.md
 github_changelog_generator \
   -u $(cut -d "/" -f1 <<< $repo_slug) \
@@ -31,6 +33,8 @@ github_changelog_generator \
   --since-tag ${LAST_RELEASE_TAG}
 
 body="$(cat CHANGELOG.md)"
+
+cat CHANGELOG.md
 
 # Overwrite CHANGELOG.md with JSON data for GitHub API
 jq -n \
@@ -46,6 +50,8 @@ jq -n \
     draft: true,
     prerelease: false
   }' > CHANGELOG.md
+
+cat CHANGELOG.md
 
 echo "Create release $version for repo: $repo_slug, branch: $branch"
 curl -H "Authorization: token $token" --data @CHANGELOG.md "https://api.github.com/repos/$repo_slug/releases"
