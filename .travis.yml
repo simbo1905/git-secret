@@ -34,7 +34,7 @@ matrix:
       language: ruby
       rvm: 2.6
     - os: linux
-      env: KITCHEN_REGEXP="gnupg2-alpine-latest"
+      env: KITCHEN_REGEXP="gnupg2-alpine-latest"; GITSECRET_DIST="github"
       services: docker
       sudo: required
       language: ruby
@@ -108,7 +108,7 @@ deploy:
   on:
     all_branches: true
     tag: true
-    condition: "$TRAVIS_TAG =~ ^v.*$ && $GITSECRET_DIST == rpm"
+    condition: "$TRAVIS_TAG =~ ^v.*$ && $GITSECRET_DIST == github"
 
 notifications:
   email:
