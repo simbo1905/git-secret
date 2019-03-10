@@ -5,7 +5,7 @@
 
 echo "inside $0"
 
-LAST_RELEASE_TAG=$(curl https://api.github.com/repos/$repo_slug/releases/latest 2>/dev/null | jq .name | sed 's/"//g')
+LAST_RELEASE_TAG=$(curl https://api.github.com/repos/$TRAVIS_REPO_SLUG/releases/latest 2>/dev/null | jq .name | sed 's/"//g')
 
 echo "LAST_RELEASE_TAG=$LAST_RELEASE_TAG"
 
