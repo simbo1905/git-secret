@@ -3,7 +3,11 @@
 # https://github.com/travis-ci/dpl/issues/155
 # https://gist.github.com/Jaskaranbir/d5b065173b3a6f164e47a542472168c1
 
-set -euxo pipefail
+echo "inside $0"
+
+LAST_RELEASE_TAG=$(curl https://api.github.com/repos/$repo_slug/releases/latest 2>/dev/null | jq .name | sed 's/"//g')
+
+echo "LAST_RELEASE_TAG=$LAST_RELEASE_TAG"
 
 # ===> Set these variables first
 branch="$GIT_BRANCH"
@@ -14,8 +18,6 @@ version="$TRAVIS_TAG"
 
 # An automatic changelog generator
 gem install github_changelog_generator
-
-LAST_RELEASE_TAG=$(curl https://api.github.com/repos/$repo_slug/releases/latest 2>/dev/null | jq .name | sed 's/"//g')
 
 # Generate CHANGELOG.md
 github_changelog_generator \
