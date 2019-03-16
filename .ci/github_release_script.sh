@@ -15,7 +15,7 @@ github_changelog_generator \
   -u $(cut -d "/" -f1 <<< $TRAVIS_REPO_SLUG) \
   -p $(cut -d "/" -f2 <<< $TRAVIS_REPO_SLUG) \
   --token $GITHUB_OAUTH_TOKEN \
-  --output generate.md
+  --output generate.md \
   --since-tag ${LAST_RELEASE_TAG}
 
 body="$(cat generate.md)"
