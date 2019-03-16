@@ -10,6 +10,12 @@ echo "LAST_RELEASE_TAG=$LAST_RELEASE_TAG"
 # An automatic changelog generator
 gem install github_changelog_generator
 
+# if we dont remove the manual changlog from the local checkout it is 
+# uploaded. we might in the future rename it HISTORY.md and it will be 
+# automatically appended to. here we just remove if from the local checkout
+# since it is already tagged and in the release. 
+rm CHANGELOG.md
+
 # Generate CHANGELOG.md
 github_changelog_generator \
   -u $(cut -d "/" -f1 <<< $TRAVIS_REPO_SLUG) \
@@ -35,10 +41,5 @@ jq -n \
     prerelease: false
   }' > generate.md
   
-# if we dont remove the manual changlog from the local checkout it is uploaded. 
-# in the future it might be renamed HISTORY.md and it will be automatically 
-# appended to. 
-rm CHANGELOG.md
-
 echo "Create release $TRAVIS_TAG for repo: $TRAVIS_REPO_SLUG, branch: $GIT_BRANCH"
 curl -H "Authorization: token $GITHUB_OAUTH_TOKEN" --data @generate.md "https://api.github.com/repos/$TRAVIS_REPO_SLUG/releases"
