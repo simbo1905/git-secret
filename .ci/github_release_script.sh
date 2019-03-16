@@ -14,7 +14,7 @@ gem install github_changelog_generator
 # uploaded. we might in the future rename it HISTORY.md and it will be 
 # automatically appended to. here we just remove if from the local checkout
 # since it is already tagged and in the release. 
-rm CHANGELOG.md
+#rm CHANGELOG.md
 
 # Generate CHANGELOG.md
 github_changelog_generator \

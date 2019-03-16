@@ -124,7 +124,7 @@ deploy:
   #   key: "$BINTRAY_API_KEY"
   #   passphrase: "$BINTRAY_GPG_PASS"
   - provider: script
-    script: bash .ci/github_release_script.sh
+    script: bash "rm CHANGELOG.md && .ci/github_release_script.sh"
     on:
       all_branches: true
       tag: true
