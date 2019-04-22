@@ -11,7 +11,7 @@ function changes {
 
       p) passphrase=$OPTARG;;
 
-      d) homedir=$OPTARG;;
+      d) homedir=$(_clean_windows_path "$OPTARG");;
 
       *) _invalid_option_for 'changes';;
     esac
@@ -61,7 +61,7 @@ function changes {
     # we ignore the exit code because _decrypt will _abort if appropriate.
 
 
-    echo "changes in ${path}:"
+    _message "changes in ${path}:"
     # diff the result:
     # we have the '|| true' because `diff` returns error code if files differ.
     diff -u <(echo -n "$decrypted") "$path" || true

@@ -53,6 +53,10 @@ function init {
   shift $((OPTIND-1))
   [ "$1" = '--' ] && shift
 
+  if [ $# -ne 0 ]; then 
+    _abort "init does not understand params: $*"
+  fi
+
   # Check if '.gitsecret/' already exists:
   local git_secret_dir
   git_secret_dir=$(_get_secrets_dir)
@@ -69,7 +73,7 @@ function init {
   mkdir "$git_secret_dir" "$(_get_secrets_dir_keys)" "$(_get_secrets_dir_path)"
   touch "$(_get_secrets_dir_keys_mapping)" "$(_get_secrets_dir_paths_mapping)"
 
-  echo "'$git_secret_dir/' created."
+  _message "init created: '$git_secret_dir/'"
 
   local random_seed_file
   random_seed_file="${_SECRETS_DIR}/keys/random_seed"

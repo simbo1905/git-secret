@@ -40,23 +40,36 @@ function teardown {
 }
 
 
-@test "run 'add' for unignored file" {
+@test "run 'add' with bad arg" {
   local test_file="$TEST_DEFAULT_FILENAME"
   touch "$test_file"
   echo "content" > "$test_file"
 
-  run git secret add "$test_file"
-  [ "$status" -eq 1 ]
+  run git secret add -Z "$test_file"
+  [ "$status" -ne 0 ]
 
   rm "$test_file"
 }
 
 
-@test "run 'add' for unignored file with '-i'" {
-  local test_file='test_file.auto_ignore'   # TODO - parameterize filename
+@test "run 'add' for file ignored by default" {
+  local test_file="$TEST_DEFAULT_FILENAME"
   touch "$test_file"
   echo "content" > "$test_file"
 
+  run git secret add "$test_file"
+  [ "$status" -eq 0 ]
+
+  rm "$test_file"
+}
+
+
+@test "run 'add' for file ignored with '-i'" {
+  local test_file="$TEST_DEFAULT_FILENAME"
+  touch "$test_file"
+  echo "content" > "$test_file"
+
+  # add -i is now a no-op (See #225) so this tests that -i does nothing.
   run git secret add -i "$test_file"
   [ "$status" -eq 0 ]
 
@@ -67,7 +80,7 @@ function teardown {
 }
 
 
-@test "run 'add' for un-ignored file with '-i' in subfolder" {
+@test "run 'add' for file ignored by default and with '-i' in subfolder" {
   # This test covers this issue:
   # https://github.com/sobolevn/git-secret/issues/85 task 1
 
@@ -127,7 +140,7 @@ function teardown {
   # Testing:
   run git secret add "../node/$TEST_DEFAULT_FILENAME"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"1 item(s) added."* ]]
+  [[ "$output" == *"git-secret: 1 item(s) added."* ]]
 
   # Testing mappings content:
   local path_mappings
@@ -160,7 +173,7 @@ function teardown {
   # Testing:
   run git secret add "$test_dir/$test_file"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"1 item(s) added."* ]]
+  [[ "$output" == *"git-secret: 1 item(s) added."* ]]
 
   # Cleaning up:
   rm -r "$test_dir"
@@ -177,7 +190,7 @@ function teardown {
   run git secret add "$filename"
   run git secret add "$filename"
   [ "$status" -eq 0 ]
-  [ "$output" = "1 item(s) added." ]
+  [ "$output" = "git-secret: 1 item(s) added." ]
 
   # Ensuring that path mappings was set correctly:
   local path_mappings
@@ -204,7 +217,7 @@ function teardown {
   # Testing:
   run git secret add "$filename1" "$filename2"
   [ "$status" -eq 0 ]
-  [ "$output" = "2 item(s) added." ]
+  [ "$output" = "git-secret: 2 item(s) added." ]
 
   # Cleaning up:
   rm "$filename1" "$filename2" ".gitignore"

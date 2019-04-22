@@ -147,6 +147,13 @@ function _os_based {
 
 # File System:
 
+function _clean_windows_path {
+  # This function transforms windows paths to *nix paths
+  # such as  c:\this\that.file -> /c/this/that/file
+  # shellcheck disable=SC2001
+  echo "$1" | sed 's#^\([a-zA-Z]\):/#/\1/#'
+}
+
 function _set_config {
   # This function creates a line in the config, or alters it.
 
@@ -182,14 +189,14 @@ function _file_has_line {
 
 
 
-# this sets the global variable 'filename'
+# this sets the global variable 'temporary_filename'
 # currently this function is only used by 'hide'
 function _temporary_file {
   # This function creates temporary file
   # which will be removed on system exit.
-  filename=$(_os_based __temp_file)  # is not `local` on purpose.
+  temporary_filename=$(_os_based __temp_file)  # is not `local` on purpose.
 
-  trap 'echo "cleaning up..."; rm -f "$filename";' EXIT
+  trap 'if [[ -n "$_SECRETS_VERBOSE" ]] || [[ -n "$SECRETS_TEST_VERBOSE" ]]; then echo "git-secret: cleaning up: $temporary_filename"; fi; rm -f "$temporary_filename";' EXIT
 }
 
 
@@ -203,8 +210,8 @@ function _gawk_inplace {
 
   _temporary_file
 
-  bash -c "gawk ${parms}" > "$filename"
-  mv "$filename" "$dest_file"
+  bash -c "gawk ${parms}" > "$temporary_filename"
+  mv "$temporary_filename" "$dest_file"
 }
 
 
@@ -285,13 +292,7 @@ function _check_ignore {
   local filename="$1" # required
 
   local result
-  result="$(git add -n "$filename" > /dev/null 2>&1; echo $?)"
-  # when ignored
-  if [[ "$result" -ne 0 ]]; then
-    result=0
-  else
-    result=1
-  fi
+  result="$(git check-ignore -q "$filename"; echo $?)"
   # returns 1 when not ignored, and 0 when ignored
   echo "$result"
 }
@@ -354,12 +355,13 @@ function _is_tracked_in_git {
 }
 
 
+# This can give unexpected .git dir when used in a _subdirectory_ of another git repo; See #431 and #433.
 function _get_git_root_path {
   # We need this function to get the location of the `.git` folder,
-  # since `.gitsecret` (or value set by SECRETS_DIR env var) must be on the same level.
+  # since `.gitsecret` (or value set by SECRETS_DIR env var) must be in the same dir.
 
   local result
-  result=$(git rev-parse --show-toplevel)
+  result=$(_clean_windows_path "$(git rev-parse --show-toplevel)")
   echo "$result"
 }
 
@@ -409,6 +411,11 @@ function _get_secrets_dir_paths_mapping {
 
 
 # Logic:
+
+function _message {
+  local message="$1" # required
+  echo "git-secret: $message"
+}
 
 function _abort {
   local message="$1" # required
@@ -464,7 +471,7 @@ function _find_and_clean_formatted {
   local pattern="$1" # can be any string pattern
 
   if [[ -n "$_SECRETS_VERBOSE" ]]; then
-    echo && echo "cleaning:"
+    echo && _message "cleaning:"
   fi
 
   _find_and_clean "$pattern"
@@ -515,17 +522,8 @@ function _secrets_dir_is_not_ignored {
   local git_secret_dir
   git_secret_dir=$(_get_secrets_dir)
 
-  # Create git_secret_dir required for check
-  local cleanup=0
-  if [[ ! -d "$git_secret_dir" ]]; then
-    mkdir "$git_secret_dir"
-    cleanup=1
-  fi
   local ignores
   ignores=$(_check_ignore "$git_secret_dir")
-  if [[ "$cleanup" == 1 ]]; then
-    rmdir "$git_secret_dir"
-  fi
 
   if [[ ! $ignores -eq 1 ]]; then
     _abort "'$git_secret_dir' is in .gitignore"

@@ -15,6 +15,10 @@ function list {
   shift $((OPTIND-1))
   [ "$1" = '--' ] && shift
 
+  if [ $# -ne 0 ]; then 
+    _abort "list does not understand params: $*"
+  fi
+
   _user_required
 
   # Command logic:
@@ -22,6 +26,6 @@ function list {
   _list_all_added_files  # exports 'filenames' array
   local filename
   for filename in "${filenames[@]}"; do
-    echo "$filename"
+    echo "$filename"    # do not prepend 'git-secret: '
   done
 }

@@ -43,12 +43,30 @@ function teardown {
   rm "${FILE_TO_HIDE}2"
 }
 
+@test "run 'reveal' with bad arg" {
+  cp "$FILE_TO_HIDE" "${FILE_TO_HIDE}2"
+  rm -f "$FILE_TO_HIDE"
+
+  local password=$(test_user_password "$TEST_DEFAULT_USER")
+  run git secret reveal -Z k-d "$TEST_GPG_HOMEDIR" -p "$password"
+  [ "$status" -ne 0 ]
+}
 
 @test "run 'reveal' with '-f'" {
   rm "$FILE_TO_HIDE"
 
   local password=$(test_user_password "$TEST_DEFAULT_USER")
   run git secret reveal -f -d "$TEST_GPG_HOMEDIR" -p "$password"
+
+  [ "$status" -eq 0 ]
+  [ -f "$FILE_TO_HIDE" ]
+}
+
+@test "run 'reveal' with '-v'" {
+  rm "$FILE_TO_HIDE"
+
+  local password=$(test_user_password "$TEST_DEFAULT_USER")
+  run git secret reveal -v -d "$TEST_GPG_HOMEDIR" -p "$password"
 
   [ "$status" -eq 0 ]
   [ -f "$FILE_TO_HIDE" ]
@@ -87,6 +105,7 @@ function teardown {
   [ "$status" -eq 2 ]
   [ ! -f "$FILE_TO_HIDE" ]
 }
+
 
 
 @test "run 'reveal' for attacker" {

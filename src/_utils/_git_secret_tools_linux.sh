@@ -8,8 +8,9 @@ function __replace_in_file_linux {
 
 
 function __temp_file_linux {
+  : "${TMPDIR:=/tmp}"
   local filename
-  filename=$(mktemp)
+  filename=$(mktemp -t _git_secret_XXX )    # makes a filename like /tmp/_git_secret_6Hw
   echo "$filename"
 }
 

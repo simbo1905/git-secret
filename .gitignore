@@ -133,7 +133,7 @@ build/
 *.deb
 *.fpm
 
-# Kithcne files
+# Kitchen files
 Gemfile.lock
 .kitchen/
 bintray/

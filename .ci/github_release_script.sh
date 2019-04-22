@@ -10,21 +10,17 @@ echo "LAST_RELEASE_TAG=$LAST_RELEASE_TAG"
 # An automatic changelog generator
 gem install github_changelog_generator
 
-# if we dont remove the manual changlog from the local checkout it is 
-# uploaded. we might in the future rename it HISTORY.md and it will be 
-# automatically appended to. here we just remove if from the local checkout
-# since it is already tagged and in the release. 
-#rm CHANGELOG.md
+# move the manual log out of the way else it will be used by the tool. 
+rm CHANGELOG.md
 
 # Generate CHANGELOG.md
 github_changelog_generator \
   -u $(cut -d "/" -f1 <<< $TRAVIS_REPO_SLUG) \
   -p $(cut -d "/" -f2 <<< $TRAVIS_REPO_SLUG) \
   --token $GITHUB_OAUTH_TOKEN \
-  --output generate.md \
   --since-tag ${LAST_RELEASE_TAG}
 
-body="$(cat generate.md)"
+body="$(cat CHANGELOG.md)"
 
 # GitHub API needs json data. here we use the mighty jq from https://stedolan.github.io/jq/
 jq -n \
@@ -39,7 +35,7 @@ jq -n \
     target_commitish: $target_commitish,
     draft: true,
     prerelease: false
-  }' > generate.md
-  
+  }' > CHANGELOG.md
+
 echo "Create release $TRAVIS_TAG for repo: $TRAVIS_REPO_SLUG, branch: $GIT_BRANCH"
-curl -H "Authorization: token $GITHUB_OAUTH_TOKEN" --data @generate.md "https://api.github.com/repos/$TRAVIS_REPO_SLUG/releases"
+curl -H "Authorization: token $GITHUB_OAUTH_TOKEN" --data @CHANGELOG.md "https://api.github.com/repos/$TRAVIS_REPO_SLUG/releases"
