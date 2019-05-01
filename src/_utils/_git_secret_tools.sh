@@ -8,7 +8,6 @@ _SECRETS_DIR_KEYS="${_SECRETS_DIR}/keys"
 _SECRETS_DIR_PATHS="${_SECRETS_DIR}/paths"
 
 # Files:
-_SECRETS_DIR_KEYS_MAPPING="${_SECRETS_DIR_KEYS}/mapping.cfg"
 _SECRETS_DIR_KEYS_TRUSTDB="${_SECRETS_DIR_KEYS}/trustdb.gpg"
 
 _SECRETS_DIR_PATHS_MAPPING="${_SECRETS_DIR_PATHS}/mapping.cfg"
@@ -395,11 +394,6 @@ function _get_secrets_dir_path {
 }
 
 
-function _get_secrets_dir_keys_mapping {
-  _append_root_path "${_SECRETS_DIR_KEYS_MAPPING}"
-}
-
-
 function _get_secrets_dir_keys_trustdb {
   _append_root_path "${_SECRETS_DIR_KEYS_TRUSTDB}"
 }
@@ -596,6 +590,7 @@ function _assert_keychain_contains_emails {
     for uid in $gpg_uids; do
         if [[ "$uid" == "$email" ]]; then
             email_ok=1
+            break
         fi
     done
     if [[ $email_ok -eq 0 ]]; then
