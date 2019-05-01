@@ -1,0 +1,36 @@
+version: '2'
+
+services:
+    gpg1:
+        container_name: gpg1
+        image: simon_alpine:latest
+        environment:
+          - GPG_TARGET=1.4
+        entrypoint:
+          - bash
+          - -c
+          - 'while true; do  sleep 2; done'
+        volumes:
+          - "./shared:/opt/data/"
+    gpg21:
+        container_name: gpg21
+        image: simon_alpine36:latest
+        environment:
+          - GPG_TARGET=2.1
+        entrypoint:
+          - bash
+          - -c
+          - 'while true; do  sleep 2; done'
+        volumes:
+          - "./shared:/opt/data/"
+    gpg22:
+        container_name: gpg22
+        image: simon_alpine:latest
+        environment:
+          - GPG_TARGET=2.2
+        entrypoint:
+          - bash
+          - -c
+          - 'while true; do  sleep 2; done'
+        volumes:
+          - "./shared:/opt/data/"

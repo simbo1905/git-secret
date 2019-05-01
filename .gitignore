@@ -137,3 +137,5 @@ build/
 Gemfile.lock
 .kitchen/
 bintray/
+.vscode/
+shared/
